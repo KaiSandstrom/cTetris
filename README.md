@@ -1,6 +1,6 @@
 # cTetris
 
-##Overview
+## Overview
 
 cTetris is a version of Tetris written in C using minimal graphics. An
 as-of-yet-unchosen graphics library will be used to create the game window
