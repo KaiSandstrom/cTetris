@@ -1,0 +1,107 @@
+
+## NOTE: This file was originally written as a project write-up for the original program
+## 	for the STM32 Discovery Board. It is left in for documentation purposes.
+
+
+Kai Sandstrom
+
+Game: Tetris
+
+In Tetris, the goal is to place falling pieces in order to complete rows to get a high score
+and prevent the blocks from reaching the top of the board. After a row is completed, it is
+removed from the board and all pieces above it shift down by one row. Players can control
+one falling piece and can move it left, right, or down, or rotate it clockwise. When a piece
+attempts to move down into another piece or the bottom of the board, it freezes in place and
+a new moving piece is placed at the top. If this piece cannot be placed at the top without
+colliding with a frozen piece, the game ends.
+
+TASKS:
+
+Representation of game state - arguably the most important coding task in a game
+  - The board is represented as a 10x16 grid of cell structures. Each structure contains
+    three values:
+      - state: empty, frozen, or falling
+      - color: one of seven colors, also codes for piece type
+      - update: flag that indicates whether or not the cell has been updated since it was
+        last drawn
+  - I realized partway through that I needed to add the update flag to this struct, because
+    it would take too long to draw the entire board every time. With this change in mind, I
+    wouldn't do anything different.
+
+Graphical representation of game board on screen - method of output
+  - Modular draw functions were used to draw the game over screen, instructions screen, and
+    static elements such as the board border and information screen labels. 
+  - a draw_cell function was used to draw a cell at a certain place on the board with a given
+    color. This function was then used by darw_board to draw any cell with an update flag set
+    to 1.
+      - I ended up having to write a second copy of this function that could draw to the left of
+        the board where the upcoming piece is displayed. In hindsight I should have written the
+        first one in such a way that would allow for its use. I would have used negative x
+        values to accomplish this, but the borders of the cells wouldn't have lined up well
+        with the limited spce on this side of the board.
+
+Game controls using keyboard and board tilt - important for providing user input
+  - Game uses getchar() and serialT/screen to get keyboard input from the player
+      - Getting keyboard input without hanging the program in an infinite loop 
+        was a challenge. I ended up modifying a driver file with a change suggested by an AI.
+  - Roll and pitch calculations are borrowed from a previous lab, and these are used in
+    if statements with the getchar() results to determine behavior
+  - There's still a bug where holding a key breaks keyboard input, but I think this might be
+    an issue with screen. Still, I would have liked to fix it.
+
+Piece behavior control - allows the user's input to impact the game state
+  - Upon calling the move_left() or move_right() functions, the function first checks every
+    cell to the left/right of each cell in motion to make sure they're not outside the board
+    or occupied by a stationary cell. If the move is blocked, nothing happens. Otherwise, 
+    each cell in motion, starting from the direction of travel, is set to empty while the
+    cell next to it is set to being in motion.
+  - Stepping down works in a similar way, except that when a collision is detected every piece
+    in motion is set to being stationary and the function returns a value indicating that a
+    collision occurred 
+  - Pushing a piece down calls step_down() many times in rapid succession
+  - I had some bugs caused by using unsigned index variables in for loops. One of these loops
+    had (i >= 0), and rolling over to -1 (255) caused an infinite loop. This was irritating
+    and hard to fix. But, I wouldn't have done anythign differently from my eventual solution
+
+Piece rotation - part of behavior control
+  - Technically speaking, rotation belongs in the previous task category, but this was a
+    significant enough task to merit its own listing. Since pieces in motion exist only as
+    groups of cells with a certain state, no center or defined position for the piece in
+    motion is stored. Due to this, rotation is done based on the left-most cell in the
+    top-most row of the piece in motion. Depending on the piece type (coded for by color)
+    and a rotation state variable passed to the function, each case has its own set of
+    cells that are activated and deactivated for each rotation.
+      - This rotation function was very difficult to get right, as the slightest mistake
+        can turn the moving piece into a jumbled mess. If I had to do it again, I'd store
+        the center of the moving piece somewhere so that could be used in the rotation
+        function instead
+
+Detect and remove completed rows - Prolongs the game by removing built-up pieces and adds
+to the player's score
+  - Completed rows are detected by iterating through rows and checking cell states. When
+    a full row is detected, a flag is set in an array called full[], which has one element
+    for each row of the board. The flag for a given row has the same index in full[]. 
+    the check_rows() function also keeps track of how many rows are full and uses this value
+    to calculate how much score to add.
+  - Another function removes completed rows from the board using the full[] array. Going from
+    top to bottom, this function finds the first complete row, sets every cell's state to 0, 
+    and shifts every stationary cell above this point down by one. It then proceeds to the
+    next full row, if it exists.
+  - I didn't have many difficulties with this step, and I wouldn't change anything.
+
+Keep track of score - Important for giving the player a sense of progress
+  - More points are awarded for more rows being completed at once. The maximum is four rows
+    at once for 1200 points. This can only be done with the tall orange piece.
+  - Amount of score to be added is returned by the check_rows() function
+  - This step went well. I wouldn't change anything.
+
+(Pseudo)randomize order of pieces - makes the game not repetitive
+  - Since the boards have no RNG, I used random.org to generate a random order of pieces.
+    The game uses each one of the seven pieces in a random order, then randomizes the order
+    again.
+  - In order to not be repetitive in subsequent games (restart by game over, not board reset),
+    I made the starting row offset by 4 each restart of the game. While the order of pieces
+    will inevitably repeat, it shouldn't be noticeable.
+  - I would have liked to get real pseudorandom numbers and generate piece order on the fly.
+    Perhaps this could be achieved using two asynchronous clocks.
+
