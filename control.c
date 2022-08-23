@@ -1,39 +1,48 @@
 #include <stdint.h>
-#include <control.h>
-#include <f3d_uart.h>
+#include "include.h"
 #include <math.h>
-#include <f3d_accel.h>
-#include <f3d_lcd_sd.h>
 #include <stdio.h>
+#include <SDL2/SDL.h>
 
-float acc[3];
+uint8_t tick_delay = 0;
 
 uint8_t get_control() {
-  int key = getchar();
-  float roll = get_roll();
-  float pitch = get_pitch();
-  //printf("roll: %f\npitch: %f\n", roll, pitch);
+  while (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT) {
+      SDL_DestroyRenderer(renderer);
+      SDL_DestroyWindow(win);
+      SDL_Quit();
+      return 6;
+    }
+	}
+  if (tick_delay != 0) {
+    tick_delay--;
+    return 0;
+  }
+  const uint8_t* key_states = SDL_GetKeyboardState(NULL);
+  uint8_t num_pressed = 0;
   uint8_t control = 0;
-  if (((char) key == 'a') || (roll > 0.8)) { 
+  tick_delay = 0;
+  if (key_states[SDL_SCANCODE_A]) { 
     control = 1; // corresponds to moving left
-  } else if (((char) key == 'd') || (roll < -0.8)) {
+    num_pressed++;
+  } if (key_states[SDL_SCANCODE_D]) {
     control = 2; // corresponds to moving right
-  } else if (((char) key == 's') || (pitch < -0.8)) {
+    num_pressed++;
+  } if (key_states[SDL_SCANCODE_S]) {
+    tick_delay = 3;
     control = 3; // corresponds to pushing down
-  } else if (((char) key == 'w') || (pitch > 0.8)) {
+    num_pressed++;
+  } if (key_states[SDL_SCANCODE_W]) {
+    tick_delay = 3;
     control = 4; // correstponds to rotating
-  } else {
-    control = 0; // no control active
+    num_pressed++;
+  } if (key_states[SDL_SCANCODE_ESCAPE]) {
+    tick_delay = 6;
+    control = 5; // pauses the game
+    num_pressed++;
+  } if (num_pressed == 0 || num_pressed > 1) {
+    control = 0;
   }
   return control;
-}
-
-float get_roll(void) { // From a previous lab, partner Grant Dowling
-  f3d_accel_read(acc);
-  return atan2(acc[1],(sqrt(pow(acc[0],2)+pow(acc[2],2))));
-}
-
-float get_pitch(void) { // From a previous lab, partner Grant Dowling
-  f3d_accel_read(acc);
-  return atan2(acc[0],(sqrt(pow(acc[1],2)+pow(acc[2],2)))); 
 }

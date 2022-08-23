@@ -1,9 +1,5 @@
 #include <stdint.h>
-#include <common.h>
-#include <movement.h>
-#include <f3d_user_btn.h>
-#include <f3d_uart.h>
-#include <f3d_gyro.h>
+#include "include.h"
 
 void move_left(void) {
   signed short i, j;
@@ -21,8 +17,8 @@ void move_left(void) {
         board[i-1][j].state = 2; // Set new cell state to moving
         board[i][j].state = 0;   // Set old cell state to empty
         board[i-1][j].color = board[i][j].color; // Set new cell color to old cell color
-	board[i-1][j].update = 1;
-	board[i][j].update = 1; // set update to 1 to draw changes on next tick
+        board[i-1][j].update = 1;
+        board[i][j].update = 1; // set update to 1 to draw changes on next tick
       }
     }
   }   
@@ -66,19 +62,19 @@ uint8_t step_down(void) { // Returns 0 if no collision occurred, 1 if collision 
       for (i = 0; i < 10; i++) {
         if (board[i][j].state == 2) {
           board[i][j].state = 1; // Change state of all moving cells to stationary
-	}
+        }
       }
     }
   } else { // Else case: No collision detected, piece moves down normally
     for (j = 16; j >= 0; j--) {
       for (i = 0; i < 10; i++) {  
         if (board[i][j].state == 2) {
-	  board[i][j+1].state = 2; // Set new cell state to moving
-	  board[i][j].state = 0; // Set new cell state to moving
-	  board[i][j+1].color = board[i][j].color;
-	  board[i][j+1].update = 1;
-	  board[i][j].update = 1;
-	}
+          board[i][j+1].state = 2; // Set new cell state to moving
+          board[i][j].state = 0; // Set new cell state to moving
+          board[i][j+1].color = board[i][j].color;
+          board[i][j+1].update = 1;
+          board[i][j].update = 1;
+        }
       }
     }
   }
@@ -86,7 +82,7 @@ uint8_t step_down(void) { // Returns 0 if no collision occurred, 1 if collision 
 }
 
 void push_down(void) {
-  while(!step_down()) {}
+  while(!step_down());
 }
 
 // Places the next piece at the top of the board, returns 1 if there's a collision with another piece. This is game over.
@@ -165,7 +161,7 @@ uint8_t rotate(uint8_t rot_state) { // Returns 1 for success, 0 for failure
   for (j = 0; ((j < 17) && !breakflag); j++) {   // This loop finds the "first" cell in motion, which is the left-most
     for (i = 0; ((i < 10) && !breakflag); i++) { // cell of the top row of the shape. After breaking, variables i and j
       if (board[i][j].state == 2) {              // remain set to this index in board.
-	type = board[i][j].color; // color is unique to each piece type so it works to code for both
+        type = board[i][j].color; // color is unique to each piece type so it works to code for both
         breakflag = 1;
       }
     }
@@ -360,7 +356,7 @@ uint8_t rotate(uint8_t rot_state) { // Returns 1 for success, 0 for failure
       return 1;
     }
   } else if ((type == 3) && ((rot_state == 1) || (rot_state == 3))) { // S and Z type pieces (type 3 and 5) only have two states due to symmetry
-    if ((i==0) || (board[i-2][j].state == 1) || (board[i-1][j].state == 1)) {
+    if ((i==1) || (board[i-2][j].state == 1) || (board[i-1][j].state == 1)) {
       return 0;
     } else {
       board[i-2][j].state = 2;
@@ -494,6 +490,7 @@ uint8_t rotate(uint8_t rot_state) { // Returns 1 for success, 0 for failure
       return 1;
     }
   }
+  return -1;
 } 
 
 uint16_t check_rows(void) {   // Checks if any rows of the board are full. If a row is full, the 
@@ -507,7 +504,7 @@ uint16_t check_rows(void) {   // Checks if any rows of the board are full. If a 
       }
       if (i == 9) {
         full[j] = 1;
-	num_full++;
+        num_full++;
       }
     }
   }
